@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package shortener;
+
+import "google/api/annotations.proto";
+
+option go_package="./grpc_domain";
+// Here is the overall greeting service definition where we define all our endpoints
+service Shortener {
+  rpc Create(CreateLinkRequest) returns (CreateLinkResponse) {
+    option (google.api.http) = {
+      post: "/create"
+      body: "*"
+    };
+  }
+  rpc Get(GetLinkRequest) returns (GetLinkResponse) {
+    option (google.api.http) = {
+      get: "/get/{link}"
+    };
+  }
+}
+
+message CreateLinkRequest {
+  string link = 1;
+}
+
+message CreateLinkResponse {
+  string shortLink = 1;
+}
+
+message GetLinkRequest {
+  string link = 1;
+}
+
+message GetLinkResponse {
+  string origLink = 1;
+}
+
+//protoc -I ./api/proto --go_out=. --go-grpc_out=. --grpc-gateway_out=. ./api/proto/shortener/shortener.proto
