@@ -10,9 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *ShortenerUseCase) Get(ctx context.Context, req *grpc_domain.GetLinkRequest) (*grpc_domain.GetLinkResponse, error) {
+func (s *ShortenerUseCase) Get(ctx context.Context,
+	req *grpc_domain.GetLinkRequest) (*grpc_domain.GetLinkResponse, error) {
 	shortLink := req.Link
-	if shortLink == "" {
+	if shortLink == "" || len(shortLink) != 10 {
 		return nil, status.Error(codes.InvalidArgument, "Bad request")
 	}
 

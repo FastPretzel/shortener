@@ -8,7 +8,6 @@ import (
 )
 
 type Config struct {
-	Addr        string `mapstructure:"API_ADDRESS"`
 	DBURL       string `mapstructure:"DB_URL"`
 	PathLog     string `mapstructure:"API_LOGPATH"`
 	StorageMode string `mapstructure:"API_STORAGE_MODE"`

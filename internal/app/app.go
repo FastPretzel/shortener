@@ -32,8 +32,6 @@ func Run(cfg *config.Config) {
 
 	log.SetOutput(f)
 
-	log.Println(cfg.DBURL)
-	log.Println(cfg.StorageMode)
 	var repository repo.Repository
 	if cfg.StorageMode == "in-memory" {
 		repository = repo.NewIM()

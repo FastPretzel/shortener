@@ -6,3 +6,9 @@ postgresql:
 
 memory:
 	docker-compose --profile memory up --build
+
+test:
+	@echo "Testing usecase:"
+	go test -v ./internal/usecase/
+	@echo "Testing repo:"
+	go test -v ./internal/repo/

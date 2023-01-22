@@ -35,5 +35,3 @@ message GetLinkRequest {
 message GetLinkResponse {
   string origLink = 1;
 }
-
-//protoc -I ./api/proto --go_out=. --go-grpc_out=. --grpc-gateway_out=. ./api/proto/shortener/shortener.proto
