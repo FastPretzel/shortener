@@ -15,8 +15,7 @@ type (
 
 	repoIM struct {
 		mem map[string]string
-		//origShortMap map[string]string
-		mu *sync.Mutex
+		mu  *sync.Mutex
 	}
 )
 

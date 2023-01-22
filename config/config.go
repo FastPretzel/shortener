@@ -25,11 +25,6 @@ func New(path string) *Config {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		//if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		//fmt.Fprintf(os.Stderr, "config file not found: %s", err.Error())
-		//} else {
-		//fmt.Fprintf(os.Stderr, "failed to read config: %s", err.Error())
-		//}
 		fmt.Fprintf(os.Stderr, "failed to read config: %s\n", err.Error())
 		os.Exit(1)
 	}
@@ -40,13 +35,7 @@ func New(path string) *Config {
 		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %s\n", err.Error())
 		os.Exit(1)
 	}
+	cfg.StorageMode = os.Getenv("API_STORAGE_MODE")
 
 	return &cfg
-	//Addr:        viper.GetString("API_ADDRESS"),
-	//DBURL:       viper.GetString("DB_URL"),
-	//PathLog:     viper.GetString("API_LOG_PATH"),
-	//StorageMode: viper.GetString("API_STORAGE_MODE"),
-	//PortGRPC:    viper.GetString("API_PORT_GRPC"),
-	//PortHTTP:    viper.GetString("API_PORT_HTTP"),
-	//}
 }

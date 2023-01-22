@@ -12,20 +12,44 @@ services:
     build:
       context: .
       dockerfile: db.Dockerfile
-    volumes:
-      - ./database_postgres:/var/lib/postgresql/data
+    profiles:
+      - postgresql
     ports:
       - 5432:5432
 
-  api:
+  api_postgres:
     container_name: "api"
     build:
       context: .
       dockerfile: api.Dockerfile
+    env_file:
+      - app.env
+    environment:
+      - API_STORAGE_MODE=postgresql
     ports:
-      - 8080:8080
+      - 8080:8080 #for grpc
+      - 8090:8090 #for http
     depends_on:
       - db
+    profiles:
+      - postgresql
+    volumes:
+      - .:/app/
+
+  api_memory:
+    container_name: "api"
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    env_file:
+      - app.env
+    environment:
+      - API_STORAGE_MODE=in-memory
+    ports:
+      - 8080:8080
+      - 8090:8090
+    profiles:
+      - memory
     volumes:
       - .:/app/
 

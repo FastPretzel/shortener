@@ -32,21 +32,28 @@ func Run(cfg *config.Config) {
 
 	log.SetOutput(f)
 
+	log.Println(cfg.DBURL)
+	log.Println(cfg.StorageMode)
 	var repository repo.Repository
-	if cfg.StorageMode == "in-memory" || cfg.DBURL == "" {
+	if cfg.StorageMode == "in-memory" {
 		repository = repo.NewIM()
-	} else {
+	} else if cfg.StorageMode == "postgresql" {
+		if len(cfg.DBURL) == 0 {
+			log.Fatalln("error db url")
+		}
 		pool, err := postgres.New(cfg.DBURL)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
 		defer pool.Close()
 		repository = repo.NewPG(pool)
+	} else {
+		log.Fatalln("error storage mode")
 	}
 
 	uc := usecase.New(repository)
 
-	lis, err := net.Listen("tcp", cfg.Addr+cfg.PortGRPC)
+	lis, err := net.Listen("tcp", cfg.PortGRPC)
 	if err != nil {
 		log.Fatalln("failed to listen: ", err.Error())
 	}
@@ -63,7 +70,7 @@ func Run(cfg *config.Config) {
 	//Client connection
 	conn, err := grpc.DialContext(
 		context.Background(),
-		cfg.Addr+cfg.PortGRPC,
+		cfg.PortGRPC,
 		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -79,7 +86,7 @@ func Run(cfg *config.Config) {
 	}
 
 	gwServer := &http.Server{
-		Addr:    cfg.Addr + cfg.PortHTTP,
+		Addr:    cfg.PortHTTP,
 		Handler: gwmux,
 	}
 
@@ -107,7 +114,7 @@ func Run(cfg *config.Config) {
 		serverStopCtx()
 	}()
 
-	log.Println("Serving gRPC-Gateway on http://", cfg.Addr, cfg.PortHTTP)
+	log.Println("Serving gRPC-Gateway on port ", cfg.PortHTTP)
 	if err = gwServer.ListenAndServe(); err != nil {
 		if err == http.ErrServerClosed {
 			log.Println("server closed: ", err)

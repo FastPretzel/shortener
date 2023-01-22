@@ -4,8 +4,6 @@
 // 	protoc        v3.15.8
 // source: shortener/shortener.proto
 
-//package helloworld;
-
 package grpc_domain
 
 import (

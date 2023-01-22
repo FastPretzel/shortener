@@ -16,5 +16,6 @@ COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +rx /entrypoint.sh
 
 EXPOSE 8080
+EXPOSE 8090
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
