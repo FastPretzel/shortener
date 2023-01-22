@@ -9,6 +9,6 @@ memory:
 
 test:
 	@echo "Testing usecase:"
-	go test -v ./internal/usecase/
+	go test -cover -v ./internal/usecase/
 	@echo "Testing repo:"
-	go test -v ./internal/repo/
+	go test -cover -v ./internal/repo/
