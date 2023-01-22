@@ -2,13 +2,13 @@ package repo
 
 import (
 	"context"
-	"errors"
+	"shortener/internal/domain"
 )
 
 func (im *repoIM) Get(_ context.Context, shortLink string) (string, error) {
 	v, ok := im.mem[shortLink]
 	if ok == false {
-		return "", errors.New("not found link")
+		return "", domain.ErrNotFound
 	}
 	return v, nil
 }
@@ -18,7 +18,7 @@ func (im *repoIM) Create(_ context.Context, origLink, shortLink string) error {
 	defer im.mu.Unlock()
 
 	if _, ok := im.mem[shortLink]; ok == true {
-		return errors.New("already exists")
+		return domain.ErrAlreadyExist
 	}
 
 	im.mem[shortLink] = origLink

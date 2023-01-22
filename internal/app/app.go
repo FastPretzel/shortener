@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
+
 	"shortener/config"
 	"shortener/grpc_domain"
 	"shortener/internal/repo"
@@ -15,7 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func Run(cfg *config.Config) {
@@ -29,7 +33,7 @@ func Run(cfg *config.Config) {
 	log.SetOutput(f)
 
 	var repository repo.Repository
-	if cfg.DBURL == "" || cfg.InMemoryMode == true {
+	if cfg.StorageMode == "in-memory" || cfg.DBURL == "" {
 		repository = repo.NewIM()
 	} else {
 		pool, err := postgres.New(cfg.DBURL)
@@ -42,7 +46,7 @@ func Run(cfg *config.Config) {
 
 	uc := usecase.New(repository)
 
-	lis, err := net.Listen("tcp", cfg.PortGRPC)
+	lis, err := net.Listen("tcp", cfg.Addr+cfg.PortGRPC)
 	if err != nil {
 		log.Fatalln("failed to listen: ", err.Error())
 	}
@@ -50,7 +54,7 @@ func Run(cfg *config.Config) {
 
 	grpc_domain.RegisterShortenerServer(s, uc)
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
-
+	//Graceful	Shutdown
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
@@ -72,5 +76,31 @@ func Run(cfg *config.Config) {
 
 	if err = s.Serve(lis); err != nil {
 		log.Fatalln("failed to serve: ", err)
+	}
+	//Client connection
+	conn, err := grpc.DialContext(
+		context.Background(),
+		cfg.Addr+cfg.PortGRPC,
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalln("failed to dial server: ", err)
+	}
+
+	gwmux := runtime.NewServeMux()
+	err = grpc_domain.RegisterShortenerHandler(context.Background(), gwmux, conn)
+	if err != nil {
+		log.Fatalln("Failed to register gateway:", err)
+	}
+
+	gwServer := &http.Server{
+		Addr:    cfg.Addr + cfg.PortHTTP,
+		Handler: gwmux,
+	}
+
+	log.Println("Serving gRPC-Gateway on http://", cfg.Addr, cfg.PortHTTP)
+	if err = gwServer.ListenAndServe(); err != nil {
+		log.Fatalln("failed to listen and serve: ", err)
 	}
 }

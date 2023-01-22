@@ -8,19 +8,20 @@ import (
 )
 
 type Config struct {
-	Addr         string
-	DBURL        string
-	InMemoryMode bool
-	PathLog      string
-	PortGRPC     string
-	PortHTTP     string
+	Addr        string `mapstructure:"API_ADDRESS"`
+	DBURL       string `mapstructure:"DB_URL"`
+	StorageMode string `mapstructure:"API_LOG_PATH"`
+	PathLog     string `mapstructure:"API_STORAGE_MODE"`
+	PortGRPC    string `mapstructure:"API_PORT_GRPC"`
+	PortHTTP    string `mapstructure:"API_PORT_HTTP"`
 }
 
-func New() *Config {
-	viper.SetConfigFile(".env")
-	//viper.SetConfigType("yaml")
+func New(path string) *Config {
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
 
-	//viper.AddConfigPath(path)
+	viper.AddConfigPath(path)
+	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -29,16 +30,23 @@ func New() *Config {
 		//} else {
 		//fmt.Fprintf(os.Stderr, "failed to read config: %s", err.Error())
 		//}
-		fmt.Fprintf(os.Stderr, "failed to read config: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "failed to read config: %s\n", err.Error())
 		os.Exit(1)
 	}
 
-	return &Config{
-		Addr:         viper.GetString("API_ADDRESS"),
-		DBURL:        viper.GetString("DB_URL"),
-		PathLog:      viper.GetString("API_LOG_PATH"),
-		InMemoryMode: viper.GetBool("API_STORAGE_MODE"),
-		PortGRPC:     viper.GetString("API_PORT_GRPC"),
-		PortHTTP:     viper.GetString("API_PORT_HTTP"),
+	var cfg Config
+	err = viper.Unmarshal(&cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %s\n", err.Error())
+		os.Exit(1)
 	}
+
+	return &cfg
+	//Addr:        viper.GetString("API_ADDRESS"),
+	//DBURL:       viper.GetString("DB_URL"),
+	//PathLog:     viper.GetString("API_LOG_PATH"),
+	//StorageMode: viper.GetString("API_STORAGE_MODE"),
+	//PortGRPC:    viper.GetString("API_PORT_GRPC"),
+	//PortHTTP:    viper.GetString("API_PORT_HTTP"),
+	//}
 }
