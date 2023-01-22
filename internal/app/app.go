@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
 
 	"shortener/config"
 	"shortener/grpc_domain"
 	"shortener/internal/repo"
 	"shortener/internal/usecase"
 	"shortener/pkg/postgres"
-	"syscall"
-	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -23,7 +23,7 @@ import (
 )
 
 func Run(cfg *config.Config) {
-	f, err := os.OpenFile(cfg.PathLog, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	f, err := os.OpenFile(cfg.PathLog+"/log.log", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to open log file: %s", err.Error())
 		os.Exit(1)
@@ -53,6 +53,36 @@ func Run(cfg *config.Config) {
 	s := grpc.NewServer()
 
 	grpc_domain.RegisterShortenerServer(s, uc)
+
+	go func() {
+		if err = s.Serve(lis); err != nil {
+			log.Fatalln("failed to serve: ", err)
+		}
+	}()
+
+	//Client connection
+	conn, err := grpc.DialContext(
+		context.Background(),
+		cfg.Addr+cfg.PortGRPC,
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalln("failed to dial server: ", err)
+	}
+	defer conn.Close()
+
+	gwmux := runtime.NewServeMux()
+	err = grpc_domain.RegisterShortenerHandler(context.Background(), gwmux, conn)
+	if err != nil {
+		log.Fatalln("Failed to register gateway:", err)
+	}
+
+	gwServer := &http.Server{
+		Addr:    cfg.Addr + cfg.PortHTTP,
+		Handler: gwmux,
+	}
+
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 	//Graceful	Shutdown
 	sig := make(chan os.Signal, 1)
@@ -70,37 +100,19 @@ func Run(cfg *config.Config) {
 		}()
 
 		s.GracefulStop()
+		if err := gwServer.Shutdown(shutdownCtx); err != nil {
+			log.Fatalln("gwserver shutdown error: ", err)
+		}
 
 		serverStopCtx()
 	}()
 
-	if err = s.Serve(lis); err != nil {
-		log.Fatalln("failed to serve: ", err)
-	}
-	//Client connection
-	conn, err := grpc.DialContext(
-		context.Background(),
-		cfg.Addr+cfg.PortGRPC,
-		grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Fatalln("failed to dial server: ", err)
-	}
-
-	gwmux := runtime.NewServeMux()
-	err = grpc_domain.RegisterShortenerHandler(context.Background(), gwmux, conn)
-	if err != nil {
-		log.Fatalln("Failed to register gateway:", err)
-	}
-
-	gwServer := &http.Server{
-		Addr:    cfg.Addr + cfg.PortHTTP,
-		Handler: gwmux,
-	}
-
 	log.Println("Serving gRPC-Gateway on http://", cfg.Addr, cfg.PortHTTP)
 	if err = gwServer.ListenAndServe(); err != nil {
+		if err == http.ErrServerClosed {
+			log.Println("server closed: ", err)
+			os.Exit(0)
+		}
 		log.Fatalln("failed to listen and serve: ", err)
 	}
 }

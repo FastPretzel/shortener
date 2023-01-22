@@ -10,8 +10,8 @@ import (
 type Config struct {
 	Addr        string `mapstructure:"API_ADDRESS"`
 	DBURL       string `mapstructure:"DB_URL"`
-	StorageMode string `mapstructure:"API_LOG_PATH"`
-	PathLog     string `mapstructure:"API_STORAGE_MODE"`
+	PathLog     string `mapstructure:"API_LOGPATH"`
+	StorageMode string `mapstructure:"API_STORAGE_MODE"`
 	PortGRPC    string `mapstructure:"API_PORT_GRPC"`
 	PortHTTP    string `mapstructure:"API_PORT_HTTP"`
 }

@@ -5,7 +5,7 @@ package shortener;
 import "google/api/annotations.proto";
 
 option go_package="./grpc_domain";
-// Here is the overall greeting service definition where we define all our endpoints
+
 service Shortener {
   rpc Create(CreateLinkRequest) returns (CreateLinkResponse) {
     option (google.api.http) = {
